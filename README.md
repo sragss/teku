@@ -1,3 +1,5 @@
+# Sam Teku Commands
+- Run tests `gradle testClasses && gradle integrationTest --tests SafeFutureTest -i | grep SAM -A 5`
 # teku
 
  [![Build Status](https://circleci.com/gh/ConsenSys/teku.svg?style=svg)](https://circleci.com/gh/ConsenSys/workflows/teku)

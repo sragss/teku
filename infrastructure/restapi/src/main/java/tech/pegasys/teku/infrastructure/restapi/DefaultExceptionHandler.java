@@ -37,6 +37,7 @@ public class DefaultExceptionHandler<T extends Exception> implements ExceptionHa
 
     context.status(SC_INTERNAL_SERVER_ERROR);
     try {
+      // TODO: If we don't deal with it, we'll raise to here and do shit here. we don't want this.
       LOG.error("Failed to process request to URL {}", context.url(), throwable);
       context.json(
           JsonUtil.serialize(

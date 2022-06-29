@@ -15,6 +15,9 @@ package tech.pegasys.teku.beaconrestapi.v2.beacon;
 
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.http.ContentTypes.OCTET_STREAM;
 import static tech.pegasys.teku.infrastructure.http.RestApiConstants.HEADER_CONSENSUS_VERSION;
 
@@ -30,8 +33,12 @@ import tech.pegasys.teku.api.schema.altair.SignedBeaconBlockAltair;
 import tech.pegasys.teku.api.schema.phase0.SignedBeaconBlockPhase0;
 import tech.pegasys.teku.beaconrestapi.AbstractDataBackedRestAPIIntegrationTest;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.beacon.GetBlock;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.http.ContentTypes;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
+import tech.pegasys.teku.validator.coordinator.MissingDepositsException;
 
 public class GetBlockV2IntegrationTest extends AbstractDataBackedRestAPIIntegrationTest {
   @Test
@@ -82,7 +89,32 @@ public class GetBlockV2IntegrationTest extends AbstractDataBackedRestAPIIntegrat
     assertThat(response.header(HEADER_CONSENSUS_VERSION)).isEqualTo(Version.altair.name());
   }
 
+  @Test
+  public void shouldNotShowStackTraceForMissingDeposit() throws IOException {
+    startRestAPIAtGenesis(SpecMilestone.ALTAIR);
+    createBlocksAtSlots(10);
+    // final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
+    // final BeaconBlock randomBlock = dataStructureUtil.randomBeaconBlock(UInt64.ONE);
+    // final BLSSignature signature = randomBlock.getBody().getRandaoReveal();
+    System.out.println("[SAM] we're in the bean hole");
+    System.out.println(validatorApiChannel.toString());
+    when(validatorApiChannel.createUnsignedBlock(any(), any(), any(), anyBoolean()))
+        .thenReturn(
+            SafeFuture.failedFuture(
+                MissingDepositsException.missingRange(UInt64.valueOf(1), UInt64.valueOf(3))));
+    final Response response = get("head", ContentTypes.JSON);
+    System.out.println("[SAM] Response Body: " + response.body().string());
+    // TODO: should be 500
+    System.out.println("[SAM] Error code " + response.code());
+    // System.out.println(response.code());
+    System.out.println("[SAM] RESPONSE BODY " + response.body().string());
+    assertThat(response.code()).isEqualTo(500);
+    // System.out.println(response.body().string());
+    // TODO(sragss): Make sure theres no stack trace in there
+  }
+
   public Response get(final String blockIdString, final String contentType) throws IOException {
+    System.out.println("[SAM] Calling: " + GetBlock.ROUTE.replace("{block_id}", blockIdString));
     return getResponse(GetBlock.ROUTE.replace("{block_id}", blockIdString), contentType);
   }
 

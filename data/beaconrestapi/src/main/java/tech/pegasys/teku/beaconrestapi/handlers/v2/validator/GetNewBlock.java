@@ -156,10 +156,17 @@ public class GetNewBlock extends MigratingEndpointAdapter {
         provider.getUnsignedBeaconBlockAtSlot(slot, randao, graffiti, false);
     request.respondAsync(
         result.thenApply(
-            maybeBlock ->
-                maybeBlock
-                    .map(AsyncApiResponse::respondOk)
-                    .orElseThrow(ChainDataUnavailableException::new)));
+            maybeBlock -> {
+                if (maybeBlock.isPresent()) {
+                  return AsyncApiResponse.respondOk(maybeBlock.get());
+                } else {
+                  throw new ChainDataUnavailableException();
+
+                }
+                // return maybeBlock
+                //     .map(AsyncApiResponse::respondOk)
+                //     .orElseThrow(ChainDataUnavailableException::new);
+            }));
   }
 
   private static SerializableOneOfTypeDefinition<BeaconBlock> getBlockSchemaDefinition(

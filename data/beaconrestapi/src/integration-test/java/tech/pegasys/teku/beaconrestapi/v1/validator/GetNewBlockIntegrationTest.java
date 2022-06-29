@@ -45,6 +45,7 @@ import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.storage.client.ChainDataUnavailableException;
+import tech.pegasys.teku.validator.coordinator.MissingDepositsException;
 
 public class GetNewBlockIntegrationTest extends AbstractDataBackedRestAPIIntegrationTest {
   private DataStructureUtil dataStructureUtil;
@@ -118,8 +119,24 @@ public class GetNewBlockIntegrationTest extends AbstractDataBackedRestAPIIntegra
             "{\"code\":503,\"message\":\"Beacon node is currently syncing and not serving requests\"}");
   }
 
+  @ParameterizedTest(name = "blinded_{1}")
+  @MethodSource("getNewBlockCases")
+  void otherThing(final String route, final boolean isBlindedBlock) throws IOException {
+    when(validatorApiChannel.createUnsignedBlock(
+            eq(UInt64.ONE), eq(signature), any(), eq(isBlindedBlock)))
+        .thenReturn(
+            SafeFuture.failedFuture(
+                MissingDepositsException.missingRange(UInt64.valueOf(1), UInt64.valueOf(10))));
+    Response response = get(route, signature, ContentTypes.OCTET_STREAM);
+    // assertThat(response.code()).isEqualTo(500);
+    System.out.println("[SAM] Resulting body: " + response.body().string());
+    System.out.println("[SAM] Resulting message: " + response.message());
+    // TODO: This is the real hammer here
+  }
+
   public Response get(final String route, final BLSSignature signature, final String contentType)
       throws IOException {
+    System.out.println("[SAM] getting route " + route);
     return getResponse(route, Map.of("randao_reveal", signature.toString()), contentType);
   }
 }
